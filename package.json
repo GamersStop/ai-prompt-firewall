@@ -1,0 +1,51 @@
+{
+    "name": "ai-prompt-firewall",
+    "version": "0.1.0",
+    "description": "Lightweight, developer-first AI prompt security middleware for real-time detection and remediation of sensitive data.",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        },
+        "./core": {
+            "import": "./dist/core/scanner.js",
+            "types": "./dist/core/scanner.d.ts"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsup src/index.ts --format esm --dts",
+        "test": "vitest",
+        "lint": "eslint src/**/*.ts",
+        "format": "prettier --write \"src/**/*.ts\""
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/GamersStop/ai-prompt-firewall.git"
+    },
+    "keywords": [
+        "ai",
+        "security",
+        "llm",
+        "firewall",
+        "pii",
+        "redaction"
+    ],
+    "author": "dreainno",
+    "license": "MIT",
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
+    },
+    "devDependencies": {
+        "typescript": "^5.0.0",
+        "tsup": "^8.0.0",
+        "vitest": "^1.0.0",
+        "prettier": "^3.0.0",
+        "eslint": "^8.0.0"
+    }
+}
