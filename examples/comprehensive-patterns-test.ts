@@ -1,3 +1,9 @@
+/**
+ * Project Name: ai-prompt-firewall
+ * File Purpose: Comprehensive integration example validating all built-in security patterns, runtime custom regex options, multi-tenant pre-compiled firewalls, and SIEM metadata offsets.
+ * Author Name: Mayuresh Pandit
+ */
+
 import { scan, PATTERNS, createFirewall, PromptBlockedError, PromptValidationError } from '../dist/index.js';
 import type { FirewallMode } from '../dist/index.js';
 
@@ -5,15 +11,15 @@ console.log('==================================================');
 console.log('   AI PROMPT FIREWALL: COMPREHENSIVE PATTERN TEST ');
 console.log('==================================================\n');
 
-// 1. Generate test samples for every single pattern in PATTERNS
+// 1. Generate test samples for every single pattern in PATTERNS (sanitized to prevent false-positive secret scanning blocks)
 const samplePayloads: Record<keyof typeof PATTERNS, string> = {
-    OPENAI_KEY: "Here is my secret key: sk-proj-1234567890abcdef1234567890abcdefABCDEF",
-    ANTHROPIC_KEY: "Use this anthropic key: sk-ant-api03-abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-ZZZZZZ",
+    OPENAI_KEY: "Here is my secret key: sk-proj-TESTKEY00000000000000000000000000000000",
+    ANTHROPIC_KEY: "Use this anthropic key: sk-ant-api03-TESTKEY000000000000000000000000000000000000000000000000000000000000000000000000-ZZZZZZ",
     AWS_KEY: "My AWS access key is AKIAIOSFODNN7EXAMPLE",
     AWS_SECRET: "And my secret is wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
     STRIPE_KEY: "Stripe live key: sk_live_TEST_KEY_NOT_REAL_1234567890",
-    GITHUB_TOKEN: "GitHub token: ghp_1234567890abcdefghijklmnopqrstuvwx1234",
-    GOOGLE_API_KEY: "Google token: AIzaSyA00000000000000000000000000000000",
+    GITHUB_TOKEN: "GitHub token: ghp_TESTTOKEN0000000000000000000000000000",
+    GOOGLE_API_KEY: "Google token: AIzaSy_TEST_KEY_NOT_REAL_1234567890abcdef",
     SLACK_TOKEN: "Slack token: xoxb-TEST-TOKEN-NOT-REAL-123456",
     PRIVATE_KEY: "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA0...\n-----END RSA PRIVATE KEY-----",
     BEARER_TOKEN: "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
@@ -39,8 +45,9 @@ for (const [patternName, sampleText] of Object.entries(samplePayloads)) {
             console.log(`    - Blocked     : ${result.blocked}`);
             console.log(`    - Findings    : ${result.findings.map(f => f.type).join(', ')}`);
             console.log(`    - Safe Output : "${result.safePrompt}"`);
-        } catch (err: any) {
-            console.error(`  Mode [${mode.toUpperCase()}] Error:`, err.message);
+        } catch (err: unknown) {
+            const error = err as Error;
+            console.error(`  Mode [${mode.toUpperCase()}] Error:`, error.message);
         }
     }
     console.log();
@@ -101,18 +108,18 @@ console.log(`[FEATURE TEST]: TYPED ERROR CLASSES`);
 console.log(`--------------------------------------------------`);
 try {
     scan("", "redact");
-} catch (err: any) {
+} catch (err: unknown) {
     if (err instanceof PromptValidationError) {
         console.log(`  - Caught Expected Validation Error : ${err.message}`);
     }
 }
 
 try {
-    const blockCheck = scan("sk-proj-1234567890abcdef1234567890abcdefABCDEF", "block");
+    const blockCheck = scan("sk-proj-TESTKEY00000000000000000000000000000000", "block");
     if (blockCheck.blocked) {
         throw new PromptBlockedError(blockCheck);
     }
-} catch (err: any) {
+} catch (err: unknown) {
     if (err instanceof PromptBlockedError) {
         console.log(`  - Caught Expected Blocked Error    : ${err.message}`);
     }
