@@ -4,7 +4,7 @@
   "description": "Lightweight, developer-first AI prompt security middleware for real-time detection and remediation of sensitive data.",
   "type": "module",
   "bin": {
-    "ai-prompt-firewall": "./dist/cli/index.js"
+    "ai-prompt-firewall": "dist/cli/index.js"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -35,7 +35,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/GamersStop/ai-prompt-firewall.git"
+    "url": "git+https://github.com/GamersStop/ai-prompt-firewall.git"
   },
   "keywords": [
     "ai",
