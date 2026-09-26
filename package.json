@@ -1,6 +1,6 @@
 {
   "name": "ai-prompt-firewall",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Lightweight, developer-first AI prompt security middleware for real-time detection and remediation of sensitive data.",
   "type": "module",
   "bin": {

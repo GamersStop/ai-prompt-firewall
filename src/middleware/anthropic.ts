@@ -5,47 +5,85 @@
  */
 
 import { scan } from '../core/ai_scanner.js';
-import { FirewallMode, ScanResult } from '../core/types.js';
+import {
+  ChatMessage,
+  FirewallMode,
+  FirewallOptions,
+  ProtectMessagesOptions,
+  ProtectMessagesResult,
+  ScanResult,
+} from '../core/types.js';
 import { PromptBlockedError } from '../core/errors.js';
+import { protectMessages } from './messages.js';
 
 /**
  * Configuration options for the Anthropic prompt protection wrapper.
  */
-export interface AnthropicProtectionOptions {
-    /** The firewall enforcement mode to apply ('redact' | 'block' | 'warn'). Defaults to 'redact'. */
-    mode?: FirewallMode;
-    /** Optional callback executed when a prompt is blocked due to security violations. */
-    onBlock?: (result: ScanResult) => void;
-    /** Optional callback executed when security findings are detected while running in 'warn' mode. */
-    onWarn?: (result: ScanResult) => void;
+export interface AnthropicProtectionOptions extends FirewallOptions {
+  /** The firewall enforcement mode to apply ('redact' | 'block' | 'warn'). Defaults to 'redact'. */
+  mode?: FirewallMode;
+  /** Optional callback executed when a prompt is blocked due to security violations. */
+  onBlock?: (result: ScanResult) => void;
+  /** Optional callback executed when security findings are detected while running in 'warn' mode. */
+  onWarn?: (result: ScanResult) => void;
 }
 
 /**
- * Intercepts, inspects, and secures user prompt payloads before transmission to Anthropic models.
+ * Protects an Anthropic Claude messages array against PII leaks and prompt injections.
+ *
+ * @param messages - Array of conversation messages in Claude format ({ role, content }[]).
+ * @param options - Configuration options controlling firewall mode, vaulting, and callbacks.
+ * @returns Result payload with sanitized messages, findings, and restoration closure.
+ */
+export function protectAnthropicMessages(
+  messages: ChatMessage[],
+  options: AnthropicProtectionOptions & ProtectMessagesOptions = {}
+): ProtectMessagesResult {
+  return protectMessages(messages, options);
+}
+
+/**
+ * Intercepts, inspects, and secures user prompt payloads or message arrays before transmission to Anthropic models.
  * Enforces the specified security posture (redaction, zero-trust blocking, or audit warning hooks).
- * 
- * @param prompt - The raw user input string to evaluate.
+ *
+ * @param promptOrMessages - The raw string prompt or array of ChatMessages to evaluate.
  * @param options - Configuration options controlling firewall mode and event callbacks.
- * @returns The sanitized/redacted prompt string or the original unmutated prompt (in warn mode).
+ * @returns The sanitized prompt string or sanitized ChatMessage array.
  * @throws {PromptBlockedError} When mode is set to 'block' and security violations are detected.
  */
-export function protectAnthropicPrompt(prompt: string, options: AnthropicProtectionOptions = {}): string {
-    const mode = options.mode ?? 'redact';
-    const result = scan(prompt, mode);
+export function protectAnthropicPrompt(
+  prompt: string,
+  options?: AnthropicProtectionOptions
+): string;
+export function protectAnthropicPrompt(
+  messages: ChatMessage[],
+  options?: AnthropicProtectionOptions & ProtectMessagesOptions
+): ChatMessage[];
+export function protectAnthropicPrompt(
+  promptOrMessages: string | ChatMessage[],
+  options: AnthropicProtectionOptions & ProtectMessagesOptions = {}
+): string | ChatMessage[] {
+  if (Array.isArray(promptOrMessages)) {
+    const result = protectAnthropicMessages(promptOrMessages, options);
+    return result.safeMessages;
+  }
 
-    // Handle security policy violations under 'block' mode
-    if (result.blocked) {
-        if (options.onBlock) {
-            options.onBlock(result);
-        }
-        throw new PromptBlockedError(result);
+  const mode = options.mode ?? 'redact';
+  const result = scan(promptOrMessages, mode, options);
+
+  // Handle security policy violations under 'block' mode
+  if (result.blocked) {
+    if (options.onBlock) {
+      options.onBlock(result);
     }
+    throw new PromptBlockedError(result);
+  }
 
-    // Handle telemetry monitoring and notification under 'warn' mode
-    if (mode === 'warn' && result.findings.length > 0 && options.onWarn) {
-        options.onWarn(result);
-    }
+  // Handle telemetry monitoring and notification under 'warn' mode
+  if (mode === 'warn' && result.findings.length > 0 && options.onWarn) {
+    options.onWarn(result);
+  }
 
-    // Return the sanitized payload (redacted text or unmutated prompt for warn mode)
-    return result.safePrompt;
+  // Return the sanitized payload (redacted text or unmutated prompt for warn mode)
+  return result.safePrompt;
 }

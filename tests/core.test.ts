@@ -5,10 +5,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { FirewallError, PromptBlockedError, PromptValidationError } from '../src/core/errors.js';
+import { FirewallError, PromptBlockedError, PromptValidationError, PromptInjectionError } from '../src/core/errors.js';
 import { PATTERNS } from '../src/core/patterns.js';
 import { isValidFirewallMode, validatePrompt, validateCustomPattern } from '../src/core/validators.js';
-import type { ScanResult } from '../src/core/types.js';
+import type { ScanResult, InjectionFinding } from '../src/core/types.js';
 
 describe('Core Module Test Suite', () => {
 
@@ -47,7 +47,72 @@ describe('Core Module Test Suite', () => {
             expect(validationErr.name).toBe('PromptValidationError');
             expect(validationErr.message).toContain('Validation Error: Input must be a valid string.');
         });
+
+        it('should construct PromptInjectionError with structured injection findings and category list', () => {
+            const injectionFindings: InjectionFinding[] = [
+                {
+                    type: 'INSTRUCTION_OVERRIDE',
+                    category: 'INSTRUCTION_OVERRIDE',
+                    severity: 'CRITICAL',
+                    confidence: 0.95
+                },
+                {
+                    type: 'ROLEPLAY_JAILBREAK',
+                    category: 'ROLEPLAY_JAILBREAK',
+                    severity: 'HIGH',
+                    confidence: 0.85
+                }
+            ];
+
+            const injectionErr = new PromptInjectionError(injectionFindings);
+            expect(injectionErr).toBeInstanceOf(Error);
+            expect(injectionErr).toBeInstanceOf(FirewallError);
+            expect(injectionErr).toBeInstanceOf(PromptInjectionError);
+            expect(injectionErr.name).toBe('PromptInjectionError');
+            expect(injectionErr.findings).toEqual(injectionFindings);
+            expect(injectionErr.message).toContain('INSTRUCTION_OVERRIDE, ROLEPLAY_JAILBREAK');
+        });
+
+        it('should allow custom message in PromptInjectionError', () => {
+            const injectionFindings: InjectionFinding[] = [
+                {
+                    type: 'PROMPT_LEAK',
+                    category: 'PROMPT_LEAK',
+                    severity: 'CRITICAL',
+                    confidence: 1.0
+                }
+            ];
+
+            const customErr = new PromptInjectionError(injectionFindings, 'Custom injection message detected');
+            expect(customErr.message).toBe('Custom injection message detected');
+        });
+
+        it('should detect injection violations via hasInjectionViolations getter on PromptBlockedError', () => {
+            const regularBlockedResult: ScanResult = {
+                safePrompt: '',
+                findings: [{ type: 'OPENAI_KEY', severity: 'CRITICAL' }],
+                blocked: true
+            };
+            const regularBlockedErr = new PromptBlockedError(regularBlockedResult);
+            expect(regularBlockedErr.hasInjectionViolations).toBe(false);
+
+            const injectionBlockedResult: ScanResult = {
+                safePrompt: '',
+                findings: [
+                    {
+                        type: 'DELIMITER_INJECTION',
+                        category: 'DELIMITER_INJECTION',
+                        severity: 'CRITICAL',
+                        confidence: 0.9
+                    }
+                ],
+                blocked: true
+            };
+            const injectionBlockedErr = new PromptBlockedError(injectionBlockedResult);
+            expect(injectionBlockedErr.hasInjectionViolations).toBe(true);
+        });
     });
+
 
     // --- 2. PATTERNS TEST SUITE ---
     describe('Pattern Dictionary (patterns.ts)', () => {
