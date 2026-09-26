@@ -75,6 +75,9 @@ jobs:
       - name: Build production bundle
         run: npm run build
 
+      - name: Upgrade npm to latest
+        run: npm install -g npm@latest
+
       - name: Publish to npmjs.org
         if: ${{ github.event_name == 'release' || inputs.registry == 'npm' || inputs.registry == 'both' }}
         run: |
