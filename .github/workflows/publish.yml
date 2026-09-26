@@ -58,12 +58,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js (npm Registry)
-        if: ${{ github.event_name == 'release' || inputs.registry == 'npm' || inputs.registry == 'both' }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
 
       - name: Install dependencies
@@ -79,10 +77,11 @@ jobs:
 
       - name: Publish to npmjs.org
         if: ${{ github.event_name == 'release' || inputs.registry == 'npm' || inputs.registry == 'both' }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          npm publish --registry=https://registry.npmjs.org --access public --provenance
+          if [ -n "${{ secrets.NPM_TOKEN }}" ]; then
+            echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          fi
+          npm publish --access public --provenance
 
       - name: Setup Node.js (GitHub Packages)
         if: ${{ inputs.registry == 'github' || inputs.registry == 'both' }}
@@ -96,4 +95,5 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          npm publish
+          echo "::warning::GitHub Packages requires scoped package names (@<owner>/ai-prompt-firewall). Attempting publish..."
+          npm publish --registry=https://npm.pkg.github.com || echo "::warning::Publishing to GitHub Packages skipped or failed because package is unscoped."

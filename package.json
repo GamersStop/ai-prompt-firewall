@@ -48,7 +48,8 @@
   "author": "dreainno",
   "license": "MIT",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
+    "access": "public",
+    "registry": "https://registry.npmjs.org",
     "provenance": true
   },
   "devDependencies": {
